@@ -120,6 +120,23 @@ function runAnalysis() {
     .where(dnbr.gt(0.66), 5)                                
     .updateMask(dnbr.mask());                               
 
+  // ========================================================
+  // 🌟 [เพิ่มใหม่] กรองพื้นที่เมือง (Built-up) และ แหล่งน้ำ (Water) 🌟
+  // ========================================================
+  // ดึงข้อมูล ESA WorldCover v200 (ปี 2021) ขอบเขตตามพื้นที่ศึกษา
+  var landcover = ee.ImageCollection("ESA/WorldCover/v200").first().clip(roi);
+  
+  // ระบุ Class ที่ไม่ต้องการ: 50 = พื้นที่เมือง/สิ่งปลูกสร้าง, 80 = แหล่งน้ำ
+  var nonUrban = landcover.neq(50);
+  var nonWater = landcover.neq(80);
+  
+  // รวมเงื่อนไข (ต้องไม่ใช่เมือง และ ต้องไม่ใช่น้ำ)
+  var validAreaMask = nonUrban.and(nonWater);
+  
+  // อัปเดต Mask ตัดพื้นที่ดังกล่าวออกจากผลลัพธ์ dNBR
+  dnbrClassified = dnbrClassified.updateMask(validAreaMask);
+  // ========================================================
+  
   // แสดงผลลงบนแผนที่
   var severityPalette = ['008000', '00fc00', 'ffff00', 'ffaa00', 'ff0000'];
   var severityVis = {min: 1, max: 5, palette: severityPalette};
